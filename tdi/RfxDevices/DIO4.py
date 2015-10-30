@@ -61,10 +61,6 @@ class DIO4(Device):
     parts.append({'path':'.OUT_EV_SW:TIME', 'type':'numeric', 'value':0})
 
 
-
-
-
-
     parts.append({'path':'.CHANNEL_1:TERM', 'type':'text', 'value':'NO'})
     parts.append({'path':'.CHANNEL_2:TERM', 'type':'text', 'value':'NO'})
     parts.append({'path':'.CHANNEL_3:TERM', 'type':'text', 'value':'NO'})
@@ -267,13 +263,13 @@ class DIO4(Device):
 
 
     parts.append({'path':':INIT_ACTION','type':'action',
-        'valueExpr':"Action(Dispatch('CPCI_SERVER','INIT',50,None),Method(None,'INIT',head))",
+        'valueExpr':"Action(Dispatch('CPCI_SERVER','INIT',50,None),Method(None,'init',head))",
         'options':('no_write_shot',)})
     parts.append({'path':':STORE_ACTION','type':'action',
-        'valueExpr':"Action(Dispatch('CPCI_SERVER','STORE',50,None),Method(None,'STORE',head))",
+        'valueExpr':"Action(Dispatch('CPCI_SERVER','STORE',50,None),Method(None,'store',head))",
         'options':('no_write_shot',)})
     parts.append({'path':':RESET_ACTION','type':'action',
-        'valueExpr':"Action(Dispatch('CPCI_SERVER','RESET',50,None),Method(None,'RESET',head))",
+        'valueExpr':"Action(Dispatch('CPCI_SERVER','RESET',50,None),Method(None,'reset',head))",
         'options':('no_write_shot',)})
 
 
@@ -281,16 +277,13 @@ class DIO4(Device):
     handle = 0
 
 
-# INIT
-    def INIT(self, arg):
+# init
+    def init(self, arg):
         print 'INIT'
 
 
 # Board ID
         try:
-
-
-
             boardId = self.board_id.data()
             print 'BOARD_ID: ' + str(boardId)
 
@@ -412,11 +405,6 @@ class DIO4(Device):
         else:
             print 'SW EVENT IS OFF'
 
-
-
-
-
-
         for c in range(8):
             if getattr(self, 'channel_%d'%(c+1)).isOn():
                 channelMask = channelMask | (1 << c)
@@ -489,20 +477,19 @@ class DIO4(Device):
                         cyclicDict = {'NO':0, 'YES':1}
                         levelDict = {'LOW':0, 'HIGH':1}
                         cyclic = cyclicDict[getattr(self,'channel_%d_cyclic'%(c+1)).data()]
-                        print cyclic
+                        print "Ciclic = ", cyclic
                         initLev1 = levelDict[getattr(self,'channel_%d_init_lev_1'%(c+1)).data()]
-                        print initLev1
+                        print "Init Level 1 = ", initLev1
                         initLev2 = levelDict[getattr(self,'channel_%d_init_lev_2'%(c+1)).data()]
-                        print initLev2
+                        print "Init Level 2 = ", initLev2
                         duration = getattr(self,'channel_%d_duration'%(c+1)).data()
-                        print duration
+                        print "Duration = ", duration
                         delay = getattr(self,'channel_%d_delay'%(c+1)).data()
-                        print delay
+                        print "Delay = ", delay
                         evTermDict = {'NO':0, 'YES':1}
                         evTerm = getattr(self, 'channel_%d_term'%(c+1)).data()
                         evTermCode = evTermDict[evTerm]
-
-
+                        print "evTermCode = ", evTermCode
                     except:
                         Data.execute('DevLogErr($1, $2)', self.nid, 'Invalid Pulse parameters for channel %d'%(c+1))
                         return 0
@@ -535,8 +522,6 @@ class DIO4(Device):
                     except:
                         Data.execute('DevLogErr($1, $2)', self.nid, 'Cannot write Pulse parameters for channel %d'%(c+1))
                         return 0
-
-
 
                 elif function == 'GCLOCK':
                     trigModeDict = {'EVENT':0, 'RISING EDGE':1, 'FALLING EDGE':2, 'SOFTWARE':3}
@@ -579,8 +564,6 @@ class DIO4(Device):
                         evTermDict = {'NO':0, 'YES':1}
                         evTerm = getattr(self, 'channel_%d_term'%(c+1)).data()
                         evTermCode = evTermDict[evTerm]
-
-
                     except:
                         Data.execute('DevLogErr($1, $2)', self.nid, 'Invalid Gated Clock parameters for channel %d'%(c+1))
                         return 0
@@ -610,9 +593,6 @@ class DIO4(Device):
                         period = long((1. / frequency) / 1E-7 + 0.5) * 1E-7;
                         #setattr(self, 'channel_%d_clock'%(c+1), Data.compile('BUILD_RANGE('+trig1+','+trig2+','+str(period)+')'))
                         getattr(self, 'channel_%d_clock'%(c+1)).putData(Range(Data.compile(trigger_1), Data.compile(trigger_2), period))
-
-
-
                     except:
                         Data.execute('DevLogErr($1, $2)', self.nid, 'Cannot write GCLOCK parameters for channel %d'%(c+1))
                         return 0
@@ -655,7 +635,6 @@ class DIO4(Device):
                         evTermDict = {'NO':0, 'YES':1}
                         evTerm = getattr(self, 'channel_%d_term'%(c+1)).data()
                         evTermCode = evTermDict[evTerm]
-
                     except:
                         Data.execute('DevLogErr($1, $2)', self.nid, 'Invalid Dual Speed Clock parameters for channel %d'%(c+1))
                         return 0
@@ -828,7 +807,7 @@ class DIO4(Device):
 
 
 # RESET
-    def RESET(self, arg):
+    def reset(self, arg):
         print 'RESET'
 # Board ID
         try:
@@ -871,7 +850,7 @@ class DIO4(Device):
 
 
 
-    def STORE(self, arg):
+    def store(self, arg):
         print 'STORE'
 # Board ID
         try:
@@ -947,6 +926,7 @@ class DIO4(Device):
                     Data.execute('DevLogErr($1, $2)', self.nid, 'Invalid FUNCTION')
                     return 0
                 print 'FUNCTION: ' + function
+
                 if function == 'PULSE' or function == 'GCLOCK' or function == 'DCLOCK':
                     if swMode == 'REMOTE':
                         status = Data.execute('MdsValue("DIO4HWGetPhaseCount(0, $1, $2)", $1,$2)', boardId, channelMask) 
@@ -979,7 +959,7 @@ class DIO4(Device):
 
 
 
-    def TRIGGER(self, arg):
+    def trigger(self, arg):
         print 'TRIGGER'
 # Board ID
         try:
@@ -1016,7 +996,6 @@ class DIO4(Device):
                         trigMode = getattr(self,'channel_%d_trig_mode'%(c+1)).data() 
                         trigModeCode = trigModeDict[trigMode]
                         if trigMode == 'SOFTWARE':
-
                             if swMode == 'REMOTE':
                                 status = Data.execute('MdsConnect("'+ ipAddr + '")')
                                 if status > 0:
@@ -1033,9 +1012,6 @@ class DIO4(Device):
                                 if status == 0:
                                     Data.execute('DevLogErr($1, $2)', self.nid, 'Cannot execute trigger')
                                     return 0
-
-
-
                     except:
                         Data.execute('DevLogErr($1, $2)', self.nid, 'Invalid trigger mode')
                         return 0

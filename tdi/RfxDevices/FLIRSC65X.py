@@ -160,9 +160,27 @@ class FLIRSC65X(Device):
         idx = cameraWorkerNids.index(self.getNid())
         self.worker = cameraWorkers[idx]
       except:
-        Data.execute('DevLogErr($1,$2)', self.getNid(), 'Cannot restore worker!!')
+        #Data.execute('DevLogErr($1,$2)', self.getNid(), 'Cannot restore worker!!')
         return 0
       return 1
+
+
+###delete worker###   
+    def deleteWorker(self):
+      global cameraWorkerNids
+      global cameraWorkers    
+      try:
+        idx = cameraWorkerNids.index(self.getNid())
+        self.worker = cameraWorkers[idx]
+        cameraWorkerNids.remove(self.getNid())
+	cameraWorkers.remove(self.worker)
+	self.worker.stop()
+        del self.worker
+      except:
+        #Data.execute('DevLogErr($1,$2)', self.getNid(), 'Cannot restore worker!!')
+        return 1
+      return 1
+
 
 ###restore info###   
     def restoreInfo(self):
@@ -671,7 +689,9 @@ class FLIRSC65X(Device):
       if self.restoreInfo() == 0:
           return 0      
 
-      self.worker = self.AsynchStore()        
+      if  self.restoreWorker() == 0 :
+           self.worker = self.AsynchStore()
+        
       self.worker.daemon = True 
       self.worker.stopReq = False
 
