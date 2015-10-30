@@ -92,7 +92,7 @@ class FLIRSC65X(Device):
           flirLib.getLastError(self.device.handle, self.device.error)
           Data.execute('DevLogErr($1,$2)', self.device.getNid(), 'Cannot start frames acquisition : ' + self.device.error.raw )
 
-        print "Fine acquisition thread"  		
+        print "Fine acquisition thread"	
 
         status = self.flirLib.flirClose(self.device.handle)  #close device and remove from info
         if status < 0:
@@ -100,10 +100,13 @@ class FLIRSC65X(Device):
           Data.execute('DevLogErr($1,$2)', self.device.getNid(), 'Cannot close camera : ' + self.device.error.raw )
 
         self.device.removeInfo()
+        self.device.handle = c_int(-1)
         return 0
       
       def stop(self):
-        print "STOP frames acquisition loop"        
+        print "STOP frames acquisition loop"
+        if(self.device.handle.value == -1)
+           return;
         status = self.flirLib.stopFramesAcquisition(self.device.handle)
         if status < 0:
            flirLib.getLastError(self.device.handle, self.device.error)
@@ -160,27 +163,9 @@ class FLIRSC65X(Device):
         idx = cameraWorkerNids.index(self.getNid())
         self.worker = cameraWorkers[idx]
       except:
-        #Data.execute('DevLogErr($1,$2)', self.getNid(), 'Cannot restore worker!!')
+        Data.execute('DevLogErr($1,$2)', self.getNid(), 'Cannot restore worker!!')
         return 0
       return 1
-
-
-###delete worker###   
-    def deleteWorker(self):
-      global cameraWorkerNids
-      global cameraWorkers    
-      try:
-        idx = cameraWorkerNids.index(self.getNid())
-        self.worker = cameraWorkers[idx]
-        cameraWorkerNids.remove(self.getNid())
-	cameraWorkers.remove(self.worker)
-	self.worker.stop()
-        del self.worker
-      except:
-        #Data.execute('DevLogErr($1,$2)', self.getNid(), 'Cannot restore worker!!')
-        return 1
-      return 1
-
 
 ###restore info###   
     def restoreInfo(self):
@@ -266,9 +251,9 @@ class FLIRSC65X(Device):
       global mdsLib
 
       print "OK0"
-      
+
       if self.restoreInfo() == 0:
-          return 0      
+          return 0
 
       print "OK0"
 
@@ -686,13 +671,13 @@ class FLIRSC65X(Device):
       global streamLib
       global flirUtilsLib
 
-      if self.restoreInfo() == 0:
-          return 0      
+      print 'Start FLIR Store'
 
-      if  self.restoreWorker() == 0 :
-           self.worker = self.AsynchStore()
-        
-      self.worker.daemon = True 
+      if self.restoreInfo() == 0:
+          return 0
+
+      self.worker = self.AsynchStore()
+      self.worker.daemon = True
       self.worker.stopReq = False
 
       width = c_int(0)
