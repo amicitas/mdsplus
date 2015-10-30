@@ -105,7 +105,7 @@ class FLIRSC65X(Device):
       
       def stop(self):
         print "STOP frames acquisition loop"
-        if(self.device.handle.value == -1)
+        if(self.device.handle.value == -1):
            return;
         status = self.flirLib.stopFramesAcquisition(self.device.handle)
         if status < 0:
