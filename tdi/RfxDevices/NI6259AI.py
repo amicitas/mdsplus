@@ -114,7 +114,7 @@ class NI6259AI(Device):
         try:
             niLib
         except:
-            niLib = CDLL("libni6259.so")
+            niLib = CDLL("libpxi6259.so")
             niInterfaceLib = CDLL("libNiInterface.so")
         try:
             idx = ni6259Nids.index(self.getNid())
@@ -130,7 +130,7 @@ class NI6259AI(Device):
             try:
                 fileName = '/dev/pxi6259.'+str(boardId)+'.ai';
                 self.fd = os.open(fileName, os.O_RDWR);
-                #print 'Open fd: ', self.fd
+                print 'Open fd: ', self.fd
             except:
                 Data.execute('DevLogErr($1,$2)', self.getNid(), 'Cannot open device '+ fileName)
                 return 0
@@ -356,7 +356,11 @@ class NI6259AI(Device):
 
         global niLib
         global niInterfaceLib
-        self.restoreInfo()
+
+
+        if self.restoreInfo() == 0 :
+            return 0
+
         aiConf = c_void_p(0)
         niInterfaceLib.pxi6259_create_ai_conf_ptr(byref(aiConf))
         try:
@@ -743,6 +747,8 @@ class NI6259AI(Device):
     def trigger(self,arg):
       global niLib
       global niInterfaceLib
+
+
       self.restoreInfo()
 
       try:

@@ -13,6 +13,7 @@ RfxDevices
 
 from CAENV1740 import CAENV1740
 from CAENDT5720 import CAENDT5720
+from CAENDT5724 import CAENDT5724
 from DIO4 import DIO4
 from SIS3820 import SIS3820
 from FEMTO import FEMTO
@@ -52,5 +53,6 @@ from MARTE_NE import MARTE_NE
 from CYGNET4K import CYGNET4K
 from REDPYTADC import REDPYTADC
 from RFXVICONTROL import RFXVICONTROL
+from MARTE_DUTY_CYCLE import MARTE_DUTY_CYCLE
 
 
