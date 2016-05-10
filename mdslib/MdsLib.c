@@ -86,7 +86,14 @@ static int va_descr(int *dtype, void *data, int *dim1, ...)
 
   dsc->dtype = *dtype;
   dsc->pointer = (char *)data;
+
   dsc->length = 0;
+
+  if (dtype_length(dsc) < 0) {
+    printf("Invalid datatype specified: %d\n",*dtype);
+    return -1;
+  }
+
   dsc->length = dtype_length(dsc);	/* must set length after dtype and data pointers are set */
 
   /*  Convert DTYPE for native access if required.  Do AFTER the call to dtype_length() to
@@ -107,8 +114,8 @@ static int va_descr(int *dtype, void *data, int *dim1, ...)
     case DTYPE_COMPLEX_DOUBLE:
       dsc->dtype = DTYPE_DOUBLE_COMPLEX;
       break;
-    default:
-      break;
+      //    default:
+      //      break;
     }
   }
 
@@ -235,6 +242,12 @@ static int va_descr2(int *dtype, int *dim1, ...)
 
   dsc->pointer = 0;
   dsc->length = 0;
+
+  if (dtype_length(dsc) < 0) {
+    printf("Invalid dtype specified: %d\n",dsc->dtype);
+    return -1;
+  } 
+
   dsc->length = dtype_length(dsc);	/* must set length after dtype and data pointers are set */
 
   /*  Convert DTYPE for native access if required.  Do AFTER the call to dtype_length() to
@@ -1048,6 +1061,8 @@ static int dtype_length(struct descriptor *d)
   case DTYPE_CSTRING:
     len = d->length ? d->length : (d->pointer ? strlen(d->pointer) : 0);
     break;
+  default:
+    len=-1;
   }
   return len;
 }
@@ -1315,6 +1330,14 @@ static void MdsValueSet(struct descriptor *outdsc, struct descriptor *indsc, int
       if (indsc->dtype == DTYPE_CSTRING) {
 	*length = MIN(outdsc->length, indsc->length);
       } else {
+	if (dtype_length(outdsc) < 0) {
+	  printf("Invalid dtype in output descriptor: %d\n",outdsc->dtype);
+	  return;
+	}
+	if (dtype_length(indsc) < 0) {
+	  printf("Invalid dtype in input descriptor: %d\n",indsc->dtype);
+	  return;
+	}
 	*length = MIN(outdsc->length / dtype_length(outdsc), indsc->length / dtype_length(indsc));
       }
     }
