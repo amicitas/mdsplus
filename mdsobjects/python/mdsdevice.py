@@ -324,16 +324,17 @@ class Device(_treenode.TreeNode):
                 for dp,dn,fn in w:
                     for fname in fn:
                         if fname.endswith('.py'):
+                          try:
                             sys.path.insert(0,dp)
                             try:
                                 devnam=fname[:-3].upper()
                                 device=__builtin__.__import__(fname[:-3]).__dict__[devnam]
                                 ans.append(devnam+'\0')
                                 ans.append('\0')
-                            except:
-                                pass
                             finally:
                                 sys.path.remove(dp)
+                          except:
+                            pass
         if len(ans) == 0:
             return None
         else:
