@@ -2386,7 +2386,8 @@ function FramePanel(svg, canvas, numCols, numRows, col, row, tree, shots, signal
                     var frameWidth = this.getResponseHeader('FRAME_WIDTH');
                     var frameHeight = this.getResponseHeader('FRAME_HEIGHT');
                     var frameBitsPerPixel = 8 * parseInt(this.getResponseHeader('FRAME_BYTES_PER_PIXEL'));
-                    var frameLength = parseInt(this.getResponseHeader('FRAME_LENGTH'));
+//                    var frameLength = parseInt(this.getResponseHeader('FRAME_LENGTH')); Gabriele Sept 2016: FRAME_LENGHT does not carry anymore correct result
+                    var frameLength = frameWidth * frameHeight;
                     var frameData = eval('new Uint' +  frameBitsPerPixel + 'Array(this.response, 0, frameLength)');
                     if(isInit)
                     {
