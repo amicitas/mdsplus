@@ -14,7 +14,7 @@ class Ident(_data.Data):
     dtype_id=191
     def __init__(self,name):
         self.name=_ver.tostr(name)
-    def decompile(self):
+    def __str__(self):
         return self.name
     @property
     def descriptor(self):

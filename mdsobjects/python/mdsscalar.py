@@ -10,7 +10,7 @@ import ctypes as _C
 _data=_mimport('mdsdata')
 _array=_mimport('mdsarray')
 _ver=_mimport('version')
-_descriptor=_mimport('descriptor')
+descriptor=_mimport('descriptor')
 
 def makeScalar(value):
     if isinstance(value,Scalar):
@@ -61,10 +61,11 @@ def makeScalar(value):
 class Scalar(_data.Data):
     _value = None
     def __new__(cls,value=0):
-        if (isinstance(value,_array.Array)) or isinstance(value,list) or isinstance(value, _N.ndarray):
-            key = cls.__name__+'Array'
-            if key in _array.__dict__:
-                return _array.__dict__[key](value)
+        try:
+            if (isinstance(value,_array.Array)) or isinstance(value,list) or isinstance(value, _N.ndarray):
+               return _array.__dict__[cls.__name__+'Array'](value)
+        except:
+            pass
         return super(Scalar,cls).__new__(cls)
 
     def __init__(self,value=0):
@@ -81,14 +82,14 @@ class Scalar(_data.Data):
 
     @property
     def descriptor(self):
-        d=_descriptor.Descriptor_s()
+        d=descriptor.Descriptor_s()
         d.length=self._value.nbytes
         d.dtype=self.dtype_id
         array=_N.array(self._value)
         d.pointer=_C.c_void_p(array.ctypes.data)
         d.original=self
         d.array=array
-        if self._units is not None or self._error is not None or self._help is not None or self._validation is not None:
+        if self._units or self._error is not None or self._help is not None or self._validation is not None:
             return _compound.Compound.descriptorWithProps(self,d)
         else:
             return d
@@ -103,9 +104,9 @@ class Scalar(_data.Data):
         """Return the numpy scalar representation of the scalar"""
         return self._value
 
-    def decompile(self):
-        formats={Int8:'%dB',Int16:'%dW',Int32:'%d',Int64:'%dQ',
-                 Uint8:'%uBU',Uint16:'%uWU',Uint32:'%uLU',Uint64:'%uQU',
+    def __str__(self):
+        formats={Int8:'%dB',Int16:'%dW',Int32:'%d',Int64:'0X%0uQ',
+                 Uint8:'%uBU',Uint16:'%uWU',Uint32:'%uLU',Uint64:'0X%0xQU',
                  Float32:'%g'}
         ans=formats[self.__class__] % (self._value,)
         if ans=='nan':
@@ -114,15 +115,18 @@ class Scalar(_data.Data):
             ans=ans+"."
         return ans
 
+    def decompile(self):
+        return _ver.tostr(self)
+
     def __int__(self):
         """Integer: x.__int__() <==> int(x)
         @rtype: int"""
-        return int(self._value)
+        return self._value.__int__()
 
     def __long__(self):
         """Long: x.__long__() <==> long(x)
         @rtype: int"""
-        return _ver.long(self._value)
+        return self.__value.__long__()
 
     def _unop(self,op):
         return _data.makeData(getattr(self.value,op)())
@@ -265,7 +269,7 @@ class Complex64(Scalar):
     dtype_id=54
     _ctype=_C.c_float*2
     _ntype=_N.complex64
-    def decompile(self):
+    def __str__(self):
         return "Cmplx(%g,%g)" % (self._value.real,self._value.imag)
 
 class Float64(Scalar):
@@ -273,7 +277,7 @@ class Float64(Scalar):
     dtype_id=53
     _ctype=_C.c_double
     _ntype=_N.float64
-    def decompile(self):
+    def __str__(self):
         return ("%E" % self._value).replace("E","D")
 
 class Complex128(Scalar):
@@ -281,7 +285,7 @@ class Complex128(Scalar):
     dtype_id=55
     _ctype=_C.c_double*2
     _ntype=_N.complex128
-    def decompile(self):
+    def __str__(self):
         return "Cmplx(%s,%s)" % (str(Float64(self._value.real)),str(Float64(self._value.imag)))
 
 class String(Scalar):
@@ -290,7 +294,7 @@ class String(Scalar):
 
     @property
     def descriptor(self):
-        d=_descriptor.Descriptor_s()
+        d=descriptor.Descriptor_s()
         d.length=len(self)
         d.dtype=self.dtype_id
         d.pointer=_C.cast(_C.c_char_p(_ver.tobytes(str(self))),_C.c_void_p)
@@ -318,7 +322,7 @@ class String(Scalar):
     def __contains__(self,y):
         """Contains: x.__contains__(y) <==> y in x
         @rtype: Bool"""
-        return self.find(str(y)) != -1
+        return str(self._value).find(str(y)) != -1
 
     def __init__(self,value):
         self._value = _N.str_(_ver.tostr(value))
@@ -326,13 +330,14 @@ class String(Scalar):
     def __str__(self):
         """String: x.__str__() <==> str(x)
         @rtype: String"""
-        return str(self._value)
-
+        if len(self._value) > 0:
+            return str(self._value)
+        else:
+            return ''
     def __len__(self):
-        return len(self._value)
-
+        return len(str(self))
     def decompile(self):
-        return repr(self._value)
+        return repr(str(self))
 
 class Int128(Scalar):
     """128-bit number"""
@@ -346,20 +351,20 @@ class Uint128(Scalar):
     def __init__(self):
         raise TypeError("Uint128 is not yet supported")
 
-_descriptor.dtypeToClass[Uint8.dtype_id]=Uint8
-_descriptor.dtypeToClass[Uint16.dtype_id]=Uint16
-_descriptor.dtypeToClass[Uint32.dtype_id]=Uint32
-_descriptor.dtypeToClass[Uint64.dtype_id]=Uint64
-_descriptor.dtypeToClass[Uint128.dtype_id]=Uint128
-_descriptor.dtypeToClass[Int8.dtype_id]=Int8
-_descriptor.dtypeToClass[Int16.dtype_id]=Int16
-_descriptor.dtypeToClass[Int32.dtype_id]=Int32
-_descriptor.dtypeToClass[Int64.dtype_id]=Int64
-_descriptor.dtypeToClass[Int128.dtype_id]=Int128
-_descriptor.dtypeToClass[Float32.dtype_id]=Float32
-_descriptor.dtypeToClass[Float64.dtype_id]=Float64
-_descriptor.dtypeToClass[Complex64.dtype_id]=Complex64
-_descriptor.dtypeToClass[Complex128.dtype_id]=Complex128
-_descriptor.dtypeToClass[String.dtype_id]=String
+descriptor.dtypeToClass[Uint8.dtype_id]=Uint8
+descriptor.dtypeToClass[Uint16.dtype_id]=Uint16
+descriptor.dtypeToClass[Uint32.dtype_id]=Uint32
+descriptor.dtypeToClass[Uint64.dtype_id]=Uint64
+descriptor.dtypeToClass[Uint128.dtype_id]=Uint128
+descriptor.dtypeToClass[Int8.dtype_id]=Int8
+descriptor.dtypeToClass[Int16.dtype_id]=Int16
+descriptor.dtypeToClass[Int32.dtype_id]=Int32
+descriptor.dtypeToClass[Int64.dtype_id]=Int64
+descriptor.dtypeToClass[Int128.dtype_id]=Int128
+descriptor.dtypeToClass[Float32.dtype_id]=Float32
+descriptor.dtypeToClass[Float64.dtype_id]=Float64
+descriptor.dtypeToClass[Complex64.dtype_id]=Complex64
+descriptor.dtypeToClass[Complex128.dtype_id]=Complex128
+descriptor.dtypeToClass[String.dtype_id]=String
 
 _compound=_mimport('compound')

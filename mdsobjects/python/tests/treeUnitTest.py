@@ -1,14 +1,17 @@
-from unittest import TestCase
+from unittest import TestCase,TestSuite
 from tree import Tree
 from tree import TreeNode
-from mdsdata import Data
+from mdsdata import makeData,Data
+from mdsscalar import Uint32
 from mdsarray import makeArray
 from numpy import array,int32
 from compound import Signal,Range
 from _mdsshr import DateToQuad,getenv,setenv
 from mdsdcl import tcl
+import random
 import gc as _gc
-import os
+import os,time
+import sys as _sys
 
 
 import tempfile
@@ -22,7 +25,7 @@ def tearDownModule():
     """tearDown invoked by nose"""
     import shutil
     shutil.rmtree(_tmpdir)
-
+    
 class treeTests(TestCase):
 
     shot=0
@@ -45,8 +48,8 @@ class treeTests(TestCase):
         setenv("pytreesub_path",hostpart+_tmpdir)
         if getenv('testing_path') is None:
             setenv('testing_path',"%s/trees"%(os.path.dirname(os.path.realpath(__file__)),))
-
-
+        
+        
     def tearDown(self):
         pass
 
@@ -54,7 +57,7 @@ class treeTests(TestCase):
     def editTrees(self):
         pytree=Tree('pytree',self.shot,'new')
         pytree_top=pytree.default
-        pytree_top.addNode('pytreesub','subtree')
+        subtree=pytree_top.addNode('pytreesub','subtree')
         for i in range(10):
             node=pytree_top.addNode('val%02d' % (i,),'numeric')
             node.record=i
@@ -245,7 +248,7 @@ class treeTests(TestCase):
         testing = Tree('testing', -1)
         for node in testing.getNodeWild(".compression:*"):
             self.pytree.SIG_CMPRS.record=node.record
-            self.assertTrue((self.pytree.SIG_CMPRS.record == node.record).all(),
+            self.assertTrue((self.pytree.SIG_CMPRS.record == node.record).all(), 
                              msg="Error writing compressed signal%s"%node)
         return
 

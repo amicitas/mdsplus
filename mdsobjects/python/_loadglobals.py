@@ -11,7 +11,7 @@ def load(gbls):
             if not key.startswith('_'):
                 gbls[key]=mod.__dict__[key]
 
-    for mod in ('mdsdata','mdsscalar','mdsarray','compound','descriptor',
+    for mod in ('mdsdata','mdsscalar','mdsarray','compound',
                 'ident','apd','event','tree','scope','_mdsshr',
                 'connection','mdsdcl','mdsExceptions'):
         loadmod_full(mod,gbls)

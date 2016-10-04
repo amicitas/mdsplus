@@ -14,11 +14,11 @@ has_unicode   = 'unicode'    in __builtins__
 has_basestring= 'basestring' in __builtins__
 has_bytes     = 'bytes'      in __builtins__
 has_buffer    = 'buffer'     in __builtins__
-has_xrange    = 'xrange'     in __builtins__
 
 def load_library(name):
     import ctypes as C
-    import os, platform
+    import os
+    import platform
     if platform.system() == 'Darwin':
         if not os.getenv('DYLD_LIBRARY_PATH'):
             if os.getenv('MDSPLUS_DIR'):
@@ -44,27 +44,10 @@ def load_library(name):
         try:
             return C.CDLL(libnam)
         except:
-            pass
-        try:
-            return C.CDLL(name)
-        except:
-            pass
-        try:
-            return C.CDLL(os.path.basename(libnam))
-        except:
-            print('Could not load CDLL: '+libnam)
-
-import os as isNt
-isNt = isNt.name=='nt'
-
-from types import GeneratorType as generator  # analysis:ignore
-if ispy3:
-    def next(g):
-        return g.__next__()
-else:
-    def next(g):
-        return g.next()
-
+            try:
+                return C.CDLL(name)
+            except:
+                return C.CDLL(os.path.basename(libnam))
 
 # substitute missing builtins
 if has_long:
@@ -95,10 +78,6 @@ if has_unicode:
     varstr = unicode
 else:
     varstr = bytes
-if has_xrange:
-    xrange = xrange
-else:
-    xrange = range
 
 # numpy char types
 npunicode = 'U'
