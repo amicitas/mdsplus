@@ -56,6 +56,8 @@ def arrayDecompile(a,cl):
                 ending=']'
             ans=ans+sval.decompile()+ending
         return ans
+    elif len(a.shape)==0:
+        return '[]'
     else:
         ans='['
         for idx in range(a.shape[0]):

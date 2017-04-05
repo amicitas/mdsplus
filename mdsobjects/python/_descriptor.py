@@ -97,7 +97,8 @@ class descriptor(_C.Structure):
             if str(value.dtype)[1] in 'SU':
                 value = value.astype('S')
                 for i in range(len(value.flat)):
-                    value.flat[i]=value.flat[i].ljust(value.itemsize)
+                    vlen=len(value.flat[i])
+                    value.flat[i]=value.flat[i].ljust(vlen)
             if not value.flags['CONTIGUOUS']:
                 value=_N.ascontiguousarray(value)
             a=descriptor_a(value)
@@ -467,7 +468,15 @@ class descriptor(_C.Structure):
             else:
                 shape=[descr.arsize/descr.length if descr.length != 0 else 0,]
             if self.dtype == _dtypes.DTYPE_T:
-                return _array.StringArray(_N.ndarray(shape=shape,dtype=_N.dtype(('S',descr.length)),buffer=_ver.buffer(_C.cast(self.pointer,_C.POINTER(_C.c_byte*descr.arsize)).contents)))
+                if descr.length == 0:
+                    strarr=''
+                    for dim in shape:
+                        if dim > 0:
+                            strarr=[strarr]*dim
+                    ans = _array.StringArray(_N.array(strarr))
+                else:
+                    ans =_array.StringArray(_N.ndarray(shape=shape,dtype=_N.dtype(('S',descr.length)),buffer=_ver.buffer(_C.cast(self.pointer,_C.POINTER(_C.c_byte*descr.arsize)).contents)))
+                return ans
 #                return StringArray(_N.chararray(shape,itemsize=descr.length,buffer=buffer(_C.cast(self.pointer,_C.POINTER(_C.c_char*descr.arsize)).contents.value)))
             if self.dtype == _dtypes.DTYPE_NID:
                 self.dtype=_dtypes.DTYPE_L
@@ -487,8 +496,14 @@ class descriptor(_C.Structure):
                                             dtype=_N.complex128,
                                             buffer=_ver.buffer(_C.cast(descr.pointer,_C.POINTER(_C.c_double * int(descr.arsize*2/descr.length))).contents)))
             try:
-                a=_N.ndarray(shape=shape,dtype=_dtypes.mdsdtypes(self.dtype).toCtype(),
-                                  buffer=_ver.buffer(_C.cast(descr.pointer,_C.POINTER(_dtypes.mdsdtypes(self.dtype).toCtype() * int(descr.arsize/descr.length))).contents))
+                if descr.length == 0:
+                    num=1
+                    for n in shape:
+                        num=num*n
+                    a=_N.array(['']*num)
+                else:
+                    a=_N.ndarray(shape=shape,dtype=_dtypes.mdsdtypes(self.dtype).toCtype(),
+                                 buffer=_ver.buffer(_C.cast(descr.pointer,_C.POINTER(_dtypes.mdsdtypes(self.dtype).toCtype() * int(descr.arsize/descr.length))).contents))
                 return _array.makeArray(a)
             except TypeError:
                 raise TypeError('Arrays of type %s are unsupported. Error message was: %s' % (str(_dtypes.mdsdtypes(self.dtype)),str(_sys.exc_info()[1])))
@@ -680,12 +695,21 @@ class descriptor_a(_C.Structure):
             self.digits=0
             self.aflags=0
             self.dtype=_dtypes.mdsdtypes.fromNumpy(value)
-            self.length=value.itemsize
+            if value.itemsize == 1 and self.dtype == _dtypes.DTYPE_T:
+                self.length = 0
+                for item in value.flat:
+                    if len(item) > self.length:
+                        self.length = len(item)
+            else:
+                self.length = value.itemsize
             self.pointer=_C.c_void_p(value.ctypes.data)
             self.dimct=_N.shape(_N.shape(value))[0]
-            self.arsize=value.nbytes
+            if self.length == 0:
+                self.arsize=0
+            else:
+                self.arsize=value.nbytes
             self.a0=self.pointer
-            if self.dimct > 1:
+            if self.dimct > 0:
                 self.coeff=1
                 for i in range(self.dimct):
                     self.coeff_and_bounds[i]=_N.shape(value)[i]
