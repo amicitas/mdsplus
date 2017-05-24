@@ -97,10 +97,18 @@ class dclTests(TestCase):
         self._doTCLTest('add node TCL_PY_DEV/model=TESTDEVICE')
         self._doTCLTest('do TESTDEVICE:TASK_TEST')
         self._doExceptionTest('do TESTDEVICE:TASK_ERROR',Exc.DevUNKOWN_STATE)
+        if not sys.platform.startswith('win'): # Windows does not support timeout yet
+            self._doExceptionTest('do TESTDEVICE:TASK_TIMEOUT',Exc.TdiTIMEOUT)
         self._doExceptionTest('close',Exc.TreeWRITEFIRST)
         self._doTCLTest('write')
         self._doTCLTest('close')
         self._doTCLTest('show db','\n')
+        """ context """
+        self._doTCLTest('set tree pytree')
+        pytree = Tree()
+        self.assertEqual(str(pytree),'Tree("PYTREE",-1,"Normal")')
+        self._doTCLTest('close pytree')
+        self.assertEqual(str(pytree),'Tree("PYTREE",-1,"Closed")')
         """ tcl exceptions """
         self._doExceptionTest('close',Exc.TreeNOT_OPEN)
         self._doExceptionTest('dispatch/command/server=xXxXxXx type test',Exc.ServerPATH_DOWN)
@@ -111,13 +119,15 @@ class dclTests(TestCase):
         hosts = '%s/mdsip.hosts'%self.root
         def testDispatchCommand(mdsip,command,stdout=None,stderr=None):
             self.assertEqual(tcl('dispatch/command/nowait/server=%s %s'  %(mdsip,command),1,1,1),(None,None))
-        def setup_mdsip(server_env,port_env,default_port):
+        def setup_mdsip(server_env,port_env,default_port,fix0):
             host = getenv(server_env,'')
             if len(host)>0:
                 return host,0
-            port = int(getenv(port_env,0))
-            if port==0: port = default_port
-            return 'LOCALHOST:%d'%(port,),port
+            port = int(getenv(port_env,default_port))
+            if port==0:
+                if fix0: port = default_port
+                else: return None,0
+            return 'localhost:%d'%(port,),port
         def start_mdsip(server,port,logname,env=None):
             if port>0:
                 from subprocess import Popen,STDOUT
@@ -130,11 +140,13 @@ class dclTests(TestCase):
                     log.close()
                     raise
                 return mdsip,log
-            for envpair in self.envx.items():
-                testDispatchCommand(server,'env %s=%s'%envpair)
+            if server:
+                for envpair in self.envx.items():
+                    testDispatchCommand(server,'env %s=%s'%envpair)
             return None,None
-        monitor,monitor_port = setup_mdsip('ACTION_MONITOR','MONITOR_PORT',4400)
-        server ,server_port  = setup_mdsip('ACTION_SERVER', 'ACTION_PORT',8800)
+        monitor,monitor_port = setup_mdsip('ACTION_MONITOR','MONITOR_PORT',4400,False)
+        monitor_opt = "/monitor=%s"%monitor if monitor_port>0 else ""
+        server ,server_port  = setup_mdsip('ACTION_SERVER', 'ACTION_PORT',8800,True)
         shot = self.shot+1
         Tree('pytree',-1,'ReadOnly').createPulse(shot)
         show_server = "Checking server: %s\n[^,]+, [^,]+, logging enabled, Inactive\n"%server
@@ -154,14 +166,14 @@ class dclTests(TestCase):
                 self._doTCLTest('show server %s'%server,out=show_server,re=True)
                 testDispatchCommand(server,'set verify')
                 testDispatchCommand(server,'type test')
-                self._doTCLTest('dispatch/build/monitor=%s'%monitor)
-                self._doTCLTest('dispatch/phase/monitor=%s INIT'%monitor)
+                self._doTCLTest('dispatch/build%s'%monitor_opt)
+                self._doTCLTest('dispatch/phase%s INIT'%monitor_opt)
                 sleep(1)
                 self._doTCLTest('show server %s'%server,out=show_server,re=True)
-                self._doTCLTest('dispatch/phase/monitor=%s PULSE'%monitor)
+                self._doTCLTest('dispatch/phase%s PULSE'%monitor_opt)
                 sleep(1)
                 self._doTCLTest('show server %s'%server,out=show_server,re=True)
-                self._doTCLTest('dispatch/phase/monitor=%s STORE'%monitor)
+                self._doTCLTest('dispatch/phase%s STORE'%monitor_opt)
                 sleep(1)
                 self._doTCLTest('show server %s'%server,out=show_server,re=True)
                 """ tcl exceptions """
